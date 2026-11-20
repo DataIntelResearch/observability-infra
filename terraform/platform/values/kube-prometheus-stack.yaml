@@ -1,0 +1,29 @@
+prometheus:
+  prometheusSpec:
+    retention: 15d
+    retentionSize: 40GB
+    serviceMonitorSelectorNilUsesHelmValues: false # pick up monitors from any release
+    podMonitorSelectorNilUsesHelmValues: false
+    # enableRemoteWriteReceiver: true              # later: lets the Mac Mini push metrics in
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: standard-rwo
+          accessModes: [ReadWriteOnce]
+          resources:
+            requests:
+              storage: 50Gi
+
+grafana:
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClassName: standard-rwo
+
+# GKE manages the control plane; these targets can't be scraped.
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeEtcd:
+  enabled: false

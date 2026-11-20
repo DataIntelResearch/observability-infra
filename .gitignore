@@ -1,0 +1,13 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+tfplan
+crash.log
+*.tfvars
+!example.tfvars
+
+# google-github-actions/auth credentials file
+gha-creds-*.json
+
+.DS_Store
