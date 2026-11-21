@@ -17,6 +17,18 @@ SA="${SA_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
 POOL="github"
 PROVIDER="github-repo"
 
+# Retry a command a few times. A newly created service account can take a little while
+# to show up in IAM, and policy bindings fail with "does not exist" until it does.
+retry() {
+  local attempt
+  for attempt in 1 2 3 4 5 6; do
+    if "$@"; then return 0; fi
+    echo "    ...not ready yet (attempt ${attempt}/6), retrying in 10s" >&2
+    sleep 10
+  done
+  "$@"
+}
+
 gcloud config set project "$PROJECT_ID"
 PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" --format='value(projectNumber)')
 
@@ -37,10 +49,10 @@ if ! gcloud iam service-accounts describe "$SA" >/dev/null 2>&1; then
 fi
 for role in roles/container.admin roles/compute.networkAdmin roles/iam.serviceAccountAdmin \
             roles/iam.serviceAccountUser roles/resourcemanager.projectIamAdmin; do
-  gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  retry gcloud projects add-iam-policy-binding "$PROJECT_ID" \
     --member="serviceAccount:${SA}" --role="$role" --condition=None >/dev/null
 done
-gcloud storage buckets add-iam-policy-binding "$BUCKET" \
+retry gcloud storage buckets add-iam-policy-binding "$BUCKET" \
   --member="serviceAccount:${SA}" --role=roles/storage.objectAdmin >/dev/null
 
 echo "==> Workload Identity Federation for ${REPO}"
@@ -55,12 +67,12 @@ if ! gcloud iam workload-identity-pools providers describe "$PROVIDER" \
     --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository" \
     --attribute-condition="assertion.repository=='${REPO}'"
 fi
-gcloud iam service-accounts add-iam-policy-binding "$SA" --role=roles/iam.workloadIdentityUser \
+retry gcloud iam service-accounts add-iam-policy-binding "$SA" --role=roles/iam.workloadIdentityUser \
   --member="principalSet://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${POOL}/attribute.repository/${REPO}" >/dev/null
 
 cat <<OUT
 
-Done. Add these as GitHub repository *variables* (Settings -> Secrets and variables -> Actions -> Variables):
+Done. Add these as GitHub repository *secrets* (Settings -> Secrets and variables -> Actions -> Secrets):
 
   GCP_PROJECT_ID   = ${PROJECT_ID}
   GCP_SA_EMAIL     = ${SA}
@@ -68,7 +80,7 @@ Done. Add these as GitHub repository *variables* (Settings -> Secrets and variab
 
 Or with the GitHub CLI:
 
-  gh variable set GCP_PROJECT_ID   --repo ${REPO} --body '${PROJECT_ID}'
-  gh variable set GCP_SA_EMAIL     --repo ${REPO} --body '${SA}'
-  gh variable set GCP_WIF_PROVIDER --repo ${REPO} --body 'projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${POOL}/providers/${PROVIDER}'
+  gh secret set GCP_PROJECT_ID   --repo ${REPO} --body '${PROJECT_ID}'
+  gh secret set GCP_SA_EMAIL     --repo ${REPO} --body '${SA}'
+  gh secret set GCP_WIF_PROVIDER --repo ${REPO} --body 'projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${POOL}/providers/${PROVIDER}'
 OUT

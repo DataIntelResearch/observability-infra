@@ -4,14 +4,14 @@ Remaining setup and follow-up work, not counting commits, pushes and pull reques
 
 ## Before the first deploy
 
-- [ ] Create a Google Cloud project, or choose an existing one, and confirm billing is linked to it.
-- [ ] Set up a billing budget and alert for the project. The GKE node pool is the main cost.
-- [ ] Install the `gcloud` CLI on your workstation and log in with an account that has Owner on the project (`gcloud auth login`).
-- [ ] Choose between spot and on-demand nodes. Set `spot` in [terraform/infra/variables.tf](../terraform/infra/variables.tf). Spot is much cheaper, but Google can reclaim those nodes.
-- [ ] Check the zone (`us-east1-b`), the machine type (`e2-standard-4`) and the node count (1–3). If you change the zone or cluster name, update both stacks' `variables.tf` and the cluster check in the workflow.
+- [X] Create a Google Cloud project, or choose an existing one, and confirm billing is linked to it.
+- [X] Set up a billing budget and alert for the project. The GKE node pool is the main cost.
+- [X] Install the `gcloud` CLI on your workstation and log in with an account that has Owner on the project (`gcloud auth login`).
+- [X] Choose between spot and on-demand nodes. Set `spot` in [terraform/infra/variables.tf](../terraform/infra/variables.tf). Spot is much cheaper, but Google can reclaim those nodes. (Kept "spot" disabled, can revisit if cost is a concern)
+- [X] Check the zone (`us-east1-b`), the machine type (`e2-standard-4`) and the node count (1–3). If you change the zone or cluster name, update both stacks' `variables.tf` and the cluster check in the workflow.
 - [ ] Run the bootstrap script:
       `scripts/bootstrap-gcp.sh <PROJECT_ID> DataIntelResearch/observability-infra`
-- [ ] Add the three GitHub repository variables the script prints: `GCP_PROJECT_ID`, `GCP_SA_EMAIL` and `GCP_WIF_PROVIDER`.
+- [ ] Add the three GitHub repository secrets the script prints: `GCP_PROJECT_ID`, `GCP_SA_EMAIL` and `GCP_WIF_PROVIDER`.
 - [ ] Optional: set up a `production` environment with required reviewers in GitHub, then uncomment `environment: production` in the workflow so every apply needs approval.
 
 ## After the first deploy
